@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>wol</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0f1210;
+    --fg: #d4d8d4;
+    --dim: #6b756c;
+    --green: #4caf6f;
+    --red: #c15353;
+    --amber: #b0a15a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+
+  main {
+    width: 100%;
+    max-width: 420px;
+    margin-top: 20vh;
+    text-align: center;
+  }
+
+  .host {
+    color: var(--dim);
+    font-size: 16px;
+    margin-bottom: 14px;
+    letter-spacing: 0.02em;
+    text-align: center;
+  }
+
+  .status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 22px;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--amber);
+    flex-shrink: 0;
+  }
+
+  .dot.pulsing {
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  .dot.ok {
+    background: var(--green);
+    animation: none;
+  }
+
+  .dot.err {
+    background: var(--red);
+    animation: none;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.25; }
+  }
+
+  .detail {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--dim);
+    word-break: break-word;
+    white-space: pre-wrap;
+    text-align: center;
+  }
+
+  button {
+    display: none;
+    margin-top: 16px;
+    background: none;
+    border: 1px solid var(--dim);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    border-color: var(--fg);
+  }
+
+  button.visible {
+    display: inline-block;
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="host">andrlab</div>
+  <div class="status">
+    <div class="dot pulsing" id="dot"></div>
+    <div id="text">waking up homelab&hellip;</div>
+  </div>
+  <div class="detail" id="detail"></div>
+  <button id="retry">send again</button>
+</main>
+
+<script>
+  const dot = document.getElementById('dot');
+  const text = document.getElementById('text');
+  const detail = document.getElementById('detail');
+  const retry = document.getElementById('retry');
+
+  async function wake() {
+    dot.className = 'dot pulsing';
+    text.textContent = 'waking up homelab…';
+    detail.textContent = '';
+    retry.className = '';
+
+    try {
+      const res = await fetch('/wake', { method: 'POST' });
+      if (res.ok) {
+        dot.className = 'dot ok';
+        text.textContent = 'homelab awoken';
+      } else {
+        const body = await res.text();
+        dot.className = 'dot err';
+        text.textContent = 'wake request failed';
+        detail.textContent = body;
+        retry.className = 'visible';
+      }
+    } catch (e) {
+      dot.className = 'dot err';
+      text.textContent = "couldn't reach the wake service";
+      detail.textContent = e.message;
+      retry.className = 'visible';
+    }
+  }
+
+  retry.addEventListener('click', wake);
+  wake();
+</script>
+</body>
+</html>
